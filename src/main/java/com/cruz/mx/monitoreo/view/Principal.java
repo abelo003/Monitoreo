@@ -12,28 +12,34 @@ import com.cruz.mx.monitoreo.models.AbstractModelServidor;
 import com.cruz.mx.monitoreo.models.AbstractModelSistema;
 import java.awt.Dimension;
 import java.awt.Toolkit;
-import java.io.File;
-import java.util.ArrayList;
 import java.util.Map;
-import java.util.Set;
 import javax.swing.ListSelectionModel;
+import org.apache.log4j.Logger;
+import org.springframework.context.ApplicationContext;
 
 /**
  *
  * @author acruzb
  */
 public class Principal extends javax.swing.JFrame {
+    
+    private static final Logger LOGGER = Logger.getLogger(Principal.class);
+    public static ApplicationContext applicationContext;
 
     private AbstractModelSistema modeloSistema;
     private AbstractModelServidor modeloServidor;
     
-    private final static String NEW_LINE = File.separator;
+    private AnalizadorMonitoreoBusiness analizadorBusiness;
+    
+    private final static String NEW_LINE = "\n";
     /**
      * Creates new form Principal
      */
     public Principal() {
         initComponents();
         init();
+        LOGGER.info("INICIANDO...");
+        analizadorBusiness = getObject(AnalizadorMonitoreoBusiness.class);
     }
     
     public void init(){
@@ -269,14 +275,14 @@ public class Principal extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnRefrescarGeneralActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRefrescarGeneralActionPerformed
-        modeloSistema.addAllData(AnalizadorMonitoreoBusiness.getErroresGenerales());
+        modeloSistema.addAllData(analizadorBusiness.getErroresGenerales());
         modeloSistema.sort();
         modeloSistema.fireTableDataChanged();
         tablaGenerales.repaint();
     }//GEN-LAST:event_btnRefrescarGeneralActionPerformed
 
     private void btnRefrescarServidorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRefrescarServidorActionPerformed
-        modeloServidor.addAllData(AnalizadorMonitoreoBusiness.getErroresServidores(comboSistema.getSelectedItem().toString()));
+        modeloServidor.addAllData(analizadorBusiness.getErroresServidores(comboSistema.getSelectedItem().toString()));
         modeloServidor.sort();
         modeloServidor.fireTableDataChanged();
         tablaServidores.repaint();
@@ -284,8 +290,9 @@ public class Principal extends javax.swing.JFrame {
 
     private void btnBuscarErrorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarErrorActionPerformed
         String texto = textFielTexto.getText();
+        textAreaErrores.setText("");
         if(null != texto && !"".equals(texto)){
-            Map<String, ListServidorError> mapa = AnalizadorMonitoreoBusiness.buscarErrores(texto.trim(), comboSistemaBusqueda.getSelectedItem().toString());
+            Map<String, ListServidorError> mapa = analizadorBusiness.buscarErrores(texto.trim(), comboSistemaBusqueda.getSelectedItem().toString());
             int count = 0;
             for (Map.Entry<String, ListServidorError> entry : mapa.entrySet()) {
                 String servidor = entry.getKey();
@@ -329,6 +336,10 @@ public class Principal extends javax.swing.JFrame {
                 new Principal().setVisible(true);
             }
         });
+    }
+    
+    public static <R extends Object> R getObject(Class<? extends Object> clazz) {
+        return (R) applicationContext.getBean(clazz);
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

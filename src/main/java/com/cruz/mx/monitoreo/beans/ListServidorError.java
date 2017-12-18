@@ -20,6 +20,11 @@ public class ListServidorError {
     public ListServidorError() {
         listaErrores = new ArrayList<>();
     }
+    
+    public ListServidorError(ServidorError error) {
+        this();
+        addServidorError(error);
+    }
 
     public List<ServidorError> getListaErrores() {
         return listaErrores;

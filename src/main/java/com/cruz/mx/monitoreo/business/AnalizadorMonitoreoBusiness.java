@@ -19,16 +19,18 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.stereotype.Component;
 
 /**
  *
  * @author acruzb
  */
+@Component
 public class AnalizadorMonitoreoBusiness {
     
-    private static final Logger logger = Logger.getLogger(AnalizadorMonitoreoBusiness.class);
+    private static final Logger LOGGER = Logger.getLogger(AnalizadorMonitoreoBusiness.class);
 
-    public static ArrayList<SistemaGeneral> getErroresGenerales() {
+    public ArrayList<SistemaGeneral> getErroresGenerales() {
         Document doc;
         ArrayList<SistemaGeneral> lista = new ArrayList<>();
         try {
@@ -42,7 +44,7 @@ public class AnalizadorMonitoreoBusiness {
         return lista;
     }
 
-    public static ArrayList<Servidor> getErroresServidores(String sistema) {
+    public ArrayList<Servidor> getErroresServidores(String sistema) {
         Document doc;
         ArrayList<Servidor> lista = new ArrayList<>();
         try {
@@ -67,8 +69,8 @@ public class AnalizadorMonitoreoBusiness {
         return lista;
     }
     
-    public static Map<String, ListServidorError> buscarErrores(String textoError, String sistema){
-        logger.info("Se inicia la busqueda de errores.");
+    public Map<String, ListServidorError> buscarErrores(String textoError, String sistema){
+        LOGGER.info("Se inicia la busqueda de errores.");
         Document doc;
         Map<String, ListServidorError> lista = new HashMap<>();
         try {
@@ -88,13 +90,11 @@ public class AnalizadorMonitoreoBusiness {
                     lista.put(servidor, ((lista.get(servidor) != null)? (lista.get(servidor).addServidorError(new ServidorError(servidor, fecha, error))): new ListServidorError()));
                 }
             }
-            logger.info("Se encontrato un total de: " + count + " errores.");
-            logger.info("Se encontrato un total de: " + count + " errores.", new Exception("jajaja"));
+            LOGGER.info("Se encontrato un total de: " + count + " errores.");
             
         } catch (IOException ex) {
-            logger.info("", ex);
         }
-        logger.info("Se encontraron: " + lista.size() + " incidencias con la palabra: " + textoError);
+        LOGGER.info("Se encontraron: " + lista.size() + " incidencias con la palabra: " + textoError);
         return lista;
     }
 
