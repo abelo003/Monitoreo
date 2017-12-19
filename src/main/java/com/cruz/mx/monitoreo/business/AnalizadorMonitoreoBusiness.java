@@ -19,6 +19,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -29,12 +30,18 @@ import org.springframework.stereotype.Component;
 public class AnalizadorMonitoreoBusiness {
     
     private static final Logger LOGGER = Logger.getLogger(AnalizadorMonitoreoBusiness.class);
+    
+    private final String urlGenerales = "http://%s/Publico/sigmalogunixDigital";
+    private final String totalErrores = "http://%s/Publico/totalerrores";
+    
+    @Value("${ip.servidor.monitoreo}")
+    private String ipMonitoreo;
 
     public ArrayList<SistemaGeneral> getErroresGenerales() {
         Document doc;
         ArrayList<SistemaGeneral> lista = new ArrayList<>();
         try {
-            doc = Jsoup.connect("http://10.63.50.73/Publico/sigmalogunixDigital").get();
+            doc = Jsoup.connect(String.format(urlGenerales, ipMonitoreo)).get();
             Elements elements = (Elements) doc.select("body .mws-table tbody tr");
             for (Element child : elements) {
                 lista.add(new SistemaGeneral(child.child(0).text(), child.child(1).text(), child.child(2).text(), child.child(3).text(), child.child(4).text(), child.child(5).text()));
@@ -52,7 +59,7 @@ public class AnalizadorMonitoreoBusiness {
             parametros.put("sistema", sistema);
             parametros.put("so", "UNIX");
             parametros.put("pais", "BAZDigital");
-            doc = Jsoup.connect("http://10.63.50.73/Publico/totalerrores").data(parametros).userAgent("Mozilla/5.0").timeout(100 * 1000).post();
+            doc = Jsoup.connect(String.format(totalErrores, ipMonitoreo)).data(parametros).userAgent("Mozilla/5.0").timeout(100 * 1000).post();
             Elements newsHeadlines = (Elements) doc.select("div.mws-panel-body tbody tr");
             Map servidores = new HashMap();
             String servidor = null;
@@ -78,7 +85,7 @@ public class AnalizadorMonitoreoBusiness {
             parametros.put("sistema", sistema);
             parametros.put("so", "UNIX");
             parametros.put("pais", "BAZDigital");
-            doc = Jsoup.connect("http://10.63.50.73/Publico/totalerrores").data(parametros).userAgent("Mozilla/5.0").timeout(100 * 1000).post();
+            doc = Jsoup.connect(String.format(totalErrores, ipMonitoreo)).data(parametros).userAgent("Mozilla/5.0").timeout(100 * 1000).post();
             Elements newsHeadlines = (Elements) doc.select("div.mws-panel-body tbody tr");
             int count =0;
             for (Element newsHeadline : newsHeadlines) {

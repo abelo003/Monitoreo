@@ -8,11 +8,20 @@ package com.cruz.mx.monitoreo.view;
 import com.cruz.mx.monitoreo.beans.ListServidorError;
 import com.cruz.mx.monitoreo.beans.ServidorError;
 import com.cruz.mx.monitoreo.business.AnalizadorMonitoreoBusiness;
+import com.cruz.mx.monitoreo.concurrent.ThreatChecarProceso;
+import com.cruz.mx.monitoreo.enums.LOADING_MODE;
+import com.cruz.mx.monitoreo.listener.PrincipalEventsAdapter;
 import com.cruz.mx.monitoreo.models.AbstractModelServidor;
 import com.cruz.mx.monitoreo.models.AbstractModelSistema;
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.SystemTray;
 import java.awt.Toolkit;
+import java.awt.TrayIcon;
 import java.util.Map;
+import java.util.logging.Level;
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.ListSelectionModel;
 import org.apache.log4j.Logger;
 import org.springframework.context.ApplicationContext;
@@ -22,38 +31,77 @@ import org.springframework.context.ApplicationContext;
  * @author acruzb
  */
 public class Principal extends javax.swing.JFrame {
-    
+
     private static final Logger LOGGER = Logger.getLogger(Principal.class);
+    public static DialogLoading dialogLoading;
     public static ApplicationContext applicationContext;
+    public static String version;
+    public static ImageIcon iconoSistema;
 
     private AbstractModelSistema modeloSistema;
     private AbstractModelServidor modeloServidor;
-    
-    private AnalizadorMonitoreoBusiness analizadorBusiness;
-    
+
+    private final AnalizadorMonitoreoBusiness analizadorBusiness;
+
     private final static String NEW_LINE = "\n";
+
     /**
      * Creates new form Principal
      */
     public Principal() {
         initComponents();
         init();
-        LOGGER.info("INICIANDO...");
         analizadorBusiness = getObject(AnalizadorMonitoreoBusiness.class);
     }
-    
-    public void init(){
+
+    public void init() {
         Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
         this.setLocation(dim.width / 2 - this.getSize().width / 2, dim.height / 2 - this.getSize().height / 2);
-        this.setTitle("Monitoreo");
-        
+        this.setTitle("Monitoreo " + version);
+        this.setIconImage(iconoSistema.getImage());
+
+        dialogLoading = new DialogLoading(this);
+        dialogLoading.setLocationRelativeTo(this);
+        dialogLoading.getRootPane().setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+        this.addComponentListener(new PrincipalEventsAdapter(this, dialogLoading));
+
         modeloSistema = new AbstractModelSistema();
         tablaGenerales.setModel(modeloSistema);
         tablaGenerales.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        
+
         modeloServidor = new AbstractModelServidor();
         tablaServidores.setModel(modeloServidor);
         tablaServidores.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    }
+
+    public void addWindowsListeners(final TrayIconBusiness trayIcon) {
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent windowEvent) {
+                trayIcon.addIcon();//se anade el icono a la barra de tareas
+                TrayIconBusiness.mostrarNotificacion("El analizador se va al background", TrayIcon.MessageType.INFO);
+            }
+
+            @Override
+            public void windowActivated(java.awt.event.WindowEvent windowEvent) {
+                trayIcon.removeIcon();
+            }
+        });
+    }
+
+    public static void showLoading(LOADING_MODE mode) {
+        if (mode.equals(LOADING_MODE.INDETERMINATE)) {
+            dialogLoading.setIndeterminateMode();
+        }
+        if (mode.equals(LOADING_MODE.SCALE)) {
+            dialogLoading.setScaleMode();
+        }
+        dialogLoading.setVisible(true);
+    }
+
+    public static void hideLoading() {
+        dialogLoading.dispose();
+        LOGGER.info("Se manda a ocultar el loading");
     }
 
     /**
@@ -85,8 +133,10 @@ public class Principal extends javax.swing.JFrame {
         btnBuscarError = new javax.swing.JButton();
         jScrollPane3 = new javax.swing.JScrollPane();
         textAreaErrores = new javax.swing.JTextArea();
+        jPanel5 = new javax.swing.JPanel();
+        jButton1 = new javax.swing.JButton();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
         jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Analisis sistema", javax.swing.border.TitledBorder.CENTER, javax.swing.border.TitledBorder.TOP));
 
@@ -254,11 +304,37 @@ public class Principal extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btnBuscarError)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 223, Short.MAX_VALUE)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 244, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
         jTabbedPane1.addTab("Búsquedas", jPanel4);
+
+        jButton1.setText("Go ahead");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
+        jPanel5.setLayout(jPanel5Layout);
+        jPanel5Layout.setHorizontalGroup(
+            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel5Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jButton1)
+                .addContainerGap(765, Short.MAX_VALUE))
+        );
+        jPanel5Layout.setVerticalGroup(
+            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel5Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jButton1)
+                .addContainerGap(328, Short.MAX_VALUE))
+        );
+
+        jTabbedPane1.addTab("Background", jPanel5);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -275,43 +351,86 @@ public class Principal extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnRefrescarGeneralActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRefrescarGeneralActionPerformed
-        modeloSistema.addAllData(analizadorBusiness.getErroresGenerales());
-        modeloSistema.sort();
-        modeloSistema.fireTableDataChanged();
-        tablaGenerales.repaint();
+        showLoading(LOADING_MODE.INDETERMINATE);
+        Thread miHilo = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                modeloSistema.addAllData(analizadorBusiness.getErroresGenerales());
+                modeloSistema.sort();
+                modeloSistema.fireTableDataChanged();
+                tablaGenerales.repaint();
+            }
+        });
+        miHilo.start();
+        new ThreatChecarProceso(miHilo).start();
     }//GEN-LAST:event_btnRefrescarGeneralActionPerformed
 
     private void btnRefrescarServidorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRefrescarServidorActionPerformed
-        modeloServidor.addAllData(analizadorBusiness.getErroresServidores(comboSistema.getSelectedItem().toString()));
-        modeloServidor.sort();
-        modeloServidor.fireTableDataChanged();
-        tablaServidores.repaint();
+        showLoading(LOADING_MODE.INDETERMINATE);
+        Thread miHilo = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                modeloServidor.addAllData(analizadorBusiness.getErroresServidores(comboSistema.getSelectedItem().toString()));
+                modeloServidor.sort();
+                modeloServidor.fireTableDataChanged();
+                tablaServidores.repaint();
+            }
+        });
+        miHilo.start();
+        new ThreatChecarProceso(miHilo).start();
     }//GEN-LAST:event_btnRefrescarServidorActionPerformed
 
     private void btnBuscarErrorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarErrorActionPerformed
-        String texto = textFielTexto.getText();
+        showLoading(LOADING_MODE.INDETERMINATE);
+        final String texto = textFielTexto.getText();
         textAreaErrores.setText("");
-        if(null != texto && !"".equals(texto)){
-            Map<String, ListServidorError> mapa = analizadorBusiness.buscarErrores(texto.trim(), comboSistemaBusqueda.getSelectedItem().toString());
-            int count = 0;
-            for (Map.Entry<String, ListServidorError> entry : mapa.entrySet()) {
-                String servidor = entry.getKey();
-                ListServidorError lista = entry.getValue();
-                lista.sort();
-                textAreaErrores.append(NEW_LINE.concat(NEW_LINE).concat("SERVIDOR " + servidor).concat(NEW_LINE));
-                for (ServidorError error : lista.getListaErrores()) {
-                    textAreaErrores.append(error.getError().concat(NEW_LINE));
+        if (null != texto && !"".equals(texto)) {
+            Thread miHilo = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Map<String, ListServidorError> mapa = analizadorBusiness.buscarErrores(texto.trim(), comboSistemaBusqueda.getSelectedItem().toString());
+                    int count = 0;
+                    for (Map.Entry<String, ListServidorError> entry : mapa.entrySet()) {
+                        String servidor = entry.getKey();
+                        ListServidorError lista = entry.getValue();
+                        lista.sort();
+                        textAreaErrores.append(NEW_LINE.concat(NEW_LINE).concat("SERVIDOR " + servidor).concat(NEW_LINE));
+                        for (ServidorError error : lista.getListaErrores()) {
+                            textAreaErrores.append(error.getError().concat(NEW_LINE));
+                        }
+                        count += lista.size();
+                    }
+                    textAreaErrores.append(NEW_LINE.concat("SE ENCONTRARON " + count + " ERRORES."));
                 }
-                count += lista.size();
-            }
-            textAreaErrores.append(NEW_LINE.concat("SE ENCONTRARON " + count + " ERRORES."));
+            });
+            miHilo.start();
+            new ThreatChecarProceso(miHilo).start();
         }
     }//GEN-LAST:event_btnBuscarErrorActionPerformed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        dispose();
+        Thread hilo = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.sleep(5000);
+                        System.out.println("se busca...");
+                        TrayIconBusiness.mostrarNotificacion("Hola mundo", TrayIcon.MessageType.WARNING);
+                    } catch (InterruptedException ex) {
+                    }
+                }
+            }
+        });
+        hilo.start();
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
+        //look&feel
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Windows".equals(info.getName())) {
@@ -319,25 +438,31 @@ public class Principal extends javax.swing.JFrame {
                     break;
                 }
             }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Principal.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Principal.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Principal.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(Principal.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
+            return;
         }
-        //</editor-fold>
+        final Principal principal = new Principal();
+        //TryIcon
+        if (!SystemTray.isSupported()) {
+            LOGGER.info("SystemTray is not supported");
+            return;
+        }
+        final PopupTrayIcon popup = new PopupTrayIcon();
+        final TrayIconBusiness trayIcon = new TrayIconBusiness("Monitoreo Banca Digital", popup);
+        trayIcon.init(principal);
+        popup.addListeners(trayIcon);
+        principal.addWindowsListeners(trayIcon);
 
+//        TrayIconBusiness.mostrarNotificacion("se inicia", TrayIcon.MessageType.WARNING);
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
+            @Override
             public void run() {
-                new Principal().setVisible(true);
+                principal.setVisible(true);
             }
         });
     }
-    
+
     public static <R extends Object> R getObject(Class<? extends Object> clazz) {
         return (R) applicationContext.getBean(clazz);
     }
@@ -348,6 +473,7 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JButton btnRefrescarServidor;
     private javax.swing.JComboBox<String> comboSistema;
     private javax.swing.JComboBox<String> comboSistemaBusqueda;
+    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -355,6 +481,7 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
+    private javax.swing.JPanel jPanel5;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
