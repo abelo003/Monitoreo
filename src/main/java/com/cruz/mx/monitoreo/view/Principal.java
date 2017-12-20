@@ -5,9 +5,11 @@
  */
 package com.cruz.mx.monitoreo.view;
 
+import com.cruz.mx.monitoreo.business.PropertiesTest;
 import com.cruz.mx.monitoreo.beans.ListServidorError;
 import com.cruz.mx.monitoreo.beans.ServidorError;
 import com.cruz.mx.monitoreo.business.AnalizadorMonitoreoBusiness;
+import com.cruz.mx.monitoreo.business.ExecuteShellComand;
 import com.cruz.mx.monitoreo.concurrent.ThreatChecarProceso;
 import com.cruz.mx.monitoreo.enums.LOADING_MODE;
 import com.cruz.mx.monitoreo.listener.PrincipalEventsAdapter;
@@ -19,7 +21,6 @@ import java.awt.SystemTray;
 import java.awt.Toolkit;
 import java.awt.TrayIcon;
 import java.util.Map;
-import java.util.logging.Level;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.ListSelectionModel;
@@ -44,6 +45,8 @@ public class Principal extends javax.swing.JFrame {
     private final AnalizadorMonitoreoBusiness analizadorBusiness;
 
     private final static String NEW_LINE = "\n";
+    
+    ExecuteShellComand shell;
 
     /**
      * Creates new form Principal
@@ -52,6 +55,9 @@ public class Principal extends javax.swing.JFrame {
         initComponents();
         init();
         analizadorBusiness = getObject(AnalizadorMonitoreoBusiness.class);
+//        shell = getObject(ExecuteShellComand.class);
+        PropertiesTest test = getObject(PropertiesTest.class);
+//        test.init();
     }
 
     public void init() {
@@ -256,6 +262,12 @@ public class Principal extends javax.swing.JFrame {
 
         jLabel3.setText("Texto a buscar");
 
+        textFielTexto.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                textFielTextoActionPerformed(evt);
+            }
+        });
+
         btnBuscarError.setText("Buscar");
         btnBuscarError.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -426,6 +438,10 @@ public class Principal extends javax.swing.JFrame {
         hilo.start();
     }//GEN-LAST:event_jButton1ActionPerformed
 
+    private void textFielTextoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_textFielTextoActionPerformed
+        btnBuscarError.doClick();
+    }//GEN-LAST:event_textFielTextoActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -451,7 +467,8 @@ public class Principal extends javax.swing.JFrame {
         final TrayIconBusiness trayIcon = new TrayIconBusiness("Monitoreo Banca Digital", popup);
         trayIcon.init(principal);
         popup.addListeners(trayIcon);
-        principal.addWindowsListeners(trayIcon);
+        principal.setDefaultCloseOperation(EXIT_ON_CLOSE);//Se quita
+//        principal.addWindowsListeners(trayIcon);
 
 //        TrayIconBusiness.mostrarNotificacion("se inicia", TrayIcon.MessageType.WARNING);
         /* Create and display the form */

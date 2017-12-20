@@ -31,6 +31,8 @@ public class AnalizadorMonitoreoBusiness {
     
     private static final Logger LOGGER = Logger.getLogger(AnalizadorMonitoreoBusiness.class);
     
+    private static final int TIME_OUT = 60 * 1000;
+    
     private final String urlGenerales = "http://%s/Publico/sigmalogunixDigital";
     private final String totalErrores = "http://%s/Publico/totalerrores";
     
@@ -59,7 +61,7 @@ public class AnalizadorMonitoreoBusiness {
             parametros.put("sistema", sistema);
             parametros.put("so", "UNIX");
             parametros.put("pais", "BAZDigital");
-            doc = Jsoup.connect(String.format(totalErrores, ipMonitoreo)).data(parametros).userAgent("Mozilla/5.0").timeout(100 * 1000).post();
+            doc = Jsoup.connect(String.format(totalErrores, ipMonitoreo)).data(parametros).userAgent("Mozilla/5.0").timeout(TIME_OUT).post();
             Elements newsHeadlines = (Elements) doc.select("div.mws-panel-body tbody tr");
             Map servidores = new HashMap();
             String servidor = null;
@@ -72,7 +74,9 @@ public class AnalizadorMonitoreoBusiness {
                 Map.Entry entry = (Map.Entry) next;
                 lista.add(new Servidor(entry.getKey().toString(), entry.getValue().toString(), "0"));
             }
-        } catch (IOException ex) {}
+        } catch (IOException ex) {
+            LOGGER.info("Error", ex);
+        }
         return lista;
     }
     
@@ -85,7 +89,7 @@ public class AnalizadorMonitoreoBusiness {
             parametros.put("sistema", sistema);
             parametros.put("so", "UNIX");
             parametros.put("pais", "BAZDigital");
-            doc = Jsoup.connect(String.format(totalErrores, ipMonitoreo)).data(parametros).userAgent("Mozilla/5.0").timeout(100 * 1000).post();
+            doc = Jsoup.connect(String.format(totalErrores, ipMonitoreo)).data(parametros).userAgent("Mozilla/5.0").timeout(TIME_OUT).post();
             Elements newsHeadlines = (Elements) doc.select("div.mws-panel-body tbody tr");
             int count =0;
             for (Element newsHeadline : newsHeadlines) {
@@ -94,12 +98,12 @@ public class AnalizadorMonitoreoBusiness {
                 if(error.contains(textoError)){
                     String servidor = newsHeadline.child(0).text();
                     String fecha = newsHeadline.child(2).text();
-                    lista.put(servidor, ((lista.get(servidor) != null)? (lista.get(servidor).addServidorError(new ServidorError(servidor, fecha, error))): new ListServidorError()));
+                    lista.put(servidor, ((lista.get(servidor) != null)? (lista.get(servidor).addServidorError(new ServidorError(servidor, fecha, error))): new ListServidorError(new ServidorError(servidor, fecha, error))));
                 }
             }
             LOGGER.info("Se encontrato un total de: " + count + " errores.");
-            
         } catch (IOException ex) {
+            LOGGER.info("Error", ex);
         }
         LOGGER.info("Se encontraron: " + lista.size() + " incidencias con la palabra: " + textoError);
         return lista;
