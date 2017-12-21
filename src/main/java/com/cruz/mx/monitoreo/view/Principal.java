@@ -5,24 +5,33 @@
  */
 package com.cruz.mx.monitoreo.view;
 
-import com.cruz.mx.monitoreo.business.PropertiesTest;
 import com.cruz.mx.monitoreo.beans.ListServidorError;
+import com.cruz.mx.monitoreo.beans.Proceso;
 import com.cruz.mx.monitoreo.beans.ServidorError;
 import com.cruz.mx.monitoreo.business.AnalizadorMonitoreoBusiness;
-import com.cruz.mx.monitoreo.business.ExecuteShellComand;
+import com.cruz.mx.monitoreo.business.FileSerializerComponent;
+import com.cruz.mx.monitoreo.business.ThreatPoolPreference;
+import com.cruz.mx.monitoreo.concurrent.PreferenceRunnable;
 import com.cruz.mx.monitoreo.concurrent.ThreatChecarProceso;
+import com.cruz.mx.monitoreo.enums.DIALOG_STATE;
 import com.cruz.mx.monitoreo.enums.LOADING_MODE;
 import com.cruz.mx.monitoreo.listener.PrincipalEventsAdapter;
+import com.cruz.mx.monitoreo.models.AbstractModelProceso;
 import com.cruz.mx.monitoreo.models.AbstractModelServidor;
 import com.cruz.mx.monitoreo.models.AbstractModelSistema;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.SystemTray;
 import java.awt.Toolkit;
 import java.awt.TrayIcon;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
+import javax.swing.JOptionPane;
+import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import org.apache.log4j.Logger;
 import org.springframework.context.ApplicationContext;
@@ -35,18 +44,22 @@ public class Principal extends javax.swing.JFrame {
 
     private static final Logger LOGGER = Logger.getLogger(Principal.class);
     public static DialogLoading dialogLoading;
+    public static DialogProceso dialogProceso;
     public static ApplicationContext applicationContext;
     public static String version;
     public static ImageIcon iconoSistema;
 
     private AbstractModelSistema modeloSistema;
     private AbstractModelServidor modeloServidor;
+    private AbstractModelProceso modeloProceso;
 
     private final AnalizadorMonitoreoBusiness analizadorBusiness;
 
     private final static String NEW_LINE = "\n";
-    
-    ExecuteShellComand shell;
+
+    private final FileSerializerComponent serializer;
+    private final ThreatPoolPreference threadPool;
+    private final TrayIconBusiness trayIconBusiness;
 
     /**
      * Creates new form Principal
@@ -55,9 +68,20 @@ public class Principal extends javax.swing.JFrame {
         initComponents();
         init();
         analizadorBusiness = getObject(AnalizadorMonitoreoBusiness.class);
-//        shell = getObject(ExecuteShellComand.class);
-        PropertiesTest test = getObject(PropertiesTest.class);
-//        test.init();
+        threadPool = getObject(ThreatPoolPreference.class);
+        final PopupTrayIcon popup = new PopupTrayIcon();
+        trayIconBusiness = getObject(TrayIconBusiness.class);
+        trayIconBusiness.init(this, "Monitoreo Banca Digital", popup);
+        popup.addListeners(trayIconBusiness);
+        addWindowsListeners();//trayIcon Listener for windows
+        serializer = getObject(FileSerializerComponent.class);
+        modeloProceso.addAllData(serializer.readData());
+        //Se cargan los hilos de las preferencias
+        for (Proceso proceso : modeloProceso.getData().getProcesos()) {
+            if(proceso.isActive()){
+                threadPool.excecute(new PreferenceRunnable(proceso));
+            }
+        }
     }
 
     public void init() {
@@ -71,6 +95,10 @@ public class Principal extends javax.swing.JFrame {
         dialogLoading.getRootPane().setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
         this.addComponentListener(new PrincipalEventsAdapter(this, dialogLoading));
 
+        dialogProceso = new DialogProceso(this);
+        dialogProceso.setLocationRelativeTo(this);
+        dialogProceso.getRootPane().setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+
         modeloSistema = new AbstractModelSistema();
         tablaGenerales.setModel(modeloSistema);
         tablaGenerales.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -78,19 +106,40 @@ public class Principal extends javax.swing.JFrame {
         modeloServidor = new AbstractModelServidor();
         tablaServidores.setModel(modeloServidor);
         tablaServidores.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        modeloProceso = new AbstractModelProceso();
+        tablaProcesos.setModel(modeloProceso);
+        tablaProcesos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        tablaProcesos.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getModifiers() == MouseEvent.BUTTON3_MASK) {
+                    Point p = e.getPoint();
+                    JTable table = (JTable) e.getSource();
+                    int row = table.rowAtPoint(p);
+                    dialogProceso.setData(modeloProceso.getObjectAt(row));
+                    dialogProceso.setMode(DIALOG_STATE.UPDATE);
+                }
+            }
+        });
+    }
+    
+    public TrayIconBusiness getTrayIconBusiness(){
+        return trayIconBusiness;
     }
 
-    public void addWindowsListeners(final TrayIconBusiness trayIcon) {
+    public void addWindowsListeners() {
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosed(java.awt.event.WindowEvent windowEvent) {
-                trayIcon.addIcon();//se anade el icono a la barra de tareas
-                TrayIconBusiness.mostrarNotificacion("El analizador se va al background", TrayIcon.MessageType.INFO);
+                trayIconBusiness.addIcon();//se anade el icono a la barra de tareas
+                trayIconBusiness.mostrarNotificacion("El analizador se va al background", TrayIcon.MessageType.INFO);
             }
 
             @Override
             public void windowActivated(java.awt.event.WindowEvent windowEvent) {
-                trayIcon.removeIcon();
+                trayIconBusiness.removeIcon();
             }
         });
     }
@@ -108,6 +157,31 @@ public class Principal extends javax.swing.JFrame {
     public static void hideLoading() {
         dialogLoading.dispose();
         LOGGER.info("Se manda a ocultar el loading");
+    }
+
+    public void addProcesoTabla(Proceso proceso) {
+        modeloProceso.addData(proceso);
+        modeloProceso.sort();
+        modeloProceso.fireTableDataChanged();
+        tablaProcesos.repaint();
+        serializer.writeData(modeloProceso.getData());
+    }
+    
+    public void updateProcesoTabla(){
+        modeloProceso.fireTableDataChanged();
+        tablaProcesos.repaint();
+        serializer.writeData(modeloProceso.getData());
+    }
+    
+    public void deleteProcesoTabla(Proceso proceso){
+        modeloProceso.deteleData(proceso);
+        modeloProceso.fireTableDataChanged();
+        tablaProcesos.repaint();
+        serializer.writeData(modeloProceso.getData());
+    }
+    
+    public void mostrarAlerta(String mensaje, String titulo, int option){
+        JOptionPane.showMessageDialog(this, mensaje, titulo, option);
     }
 
     /**
@@ -139,6 +213,11 @@ public class Principal extends javax.swing.JFrame {
         btnBuscarError = new javax.swing.JButton();
         jScrollPane3 = new javax.swing.JScrollPane();
         textAreaErrores = new javax.swing.JTextArea();
+        jPanel7 = new javax.swing.JPanel();
+        jScrollPane4 = new javax.swing.JScrollPane();
+        tablaProcesos = new javax.swing.JTable();
+        jPanel6 = new javax.swing.JPanel();
+        btnAgregar = new javax.swing.JButton();
         jPanel5 = new javax.swing.JPanel();
         jButton1 = new javax.swing.JButton();
 
@@ -316,11 +395,70 @@ public class Principal extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btnBuscarError)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 244, Short.MAX_VALUE)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 231, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
         jTabbedPane1.addTab("Búsquedas", jPanel4);
+
+        tablaProcesos.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
+            },
+            new String [] {
+                "Title 1", "Title 2", "Title 3", "Title 4"
+            }
+        ));
+        jScrollPane4.setViewportView(tablaProcesos);
+
+        btnAgregar.setText("Agregar preferencia");
+        btnAgregar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnAgregarActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
+        jPanel6.setLayout(jPanel6Layout);
+        jPanel6Layout.setHorizontalGroup(
+            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel6Layout.createSequentialGroup()
+                .addComponent(btnAgregar)
+                .addGap(0, 0, Short.MAX_VALUE))
+        );
+        jPanel6Layout.setVerticalGroup(
+            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel6Layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(btnAgregar)
+                .addContainerGap())
+        );
+
+        javax.swing.GroupLayout jPanel7Layout = new javax.swing.GroupLayout(jPanel7);
+        jPanel7.setLayout(jPanel7Layout);
+        jPanel7Layout.setHorizontalGroup(
+            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel7Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane4, javax.swing.GroupLayout.DEFAULT_SIZE, 834, Short.MAX_VALUE)
+                    .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+        jPanel7Layout.setVerticalGroup(
+            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel7Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane4, javax.swing.GroupLayout.DEFAULT_SIZE, 276, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
+        jTabbedPane1.addTab("Preferencias", jPanel7);
 
         jButton1.setText("Go ahead");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
@@ -343,10 +481,12 @@ public class Principal extends javax.swing.JFrame {
             .addGroup(jPanel5Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jButton1)
-                .addContainerGap(328, Short.MAX_VALUE))
+                .addContainerGap(315, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("Background", jPanel5);
+
+        jTabbedPane1.setSelectedIndex(2);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -429,7 +569,7 @@ public class Principal extends javax.swing.JFrame {
                     try {
                         Thread.sleep(5000);
                         System.out.println("se busca...");
-                        TrayIconBusiness.mostrarNotificacion("Hola mundo", TrayIcon.MessageType.WARNING);
+                        trayIconBusiness.mostrarNotificacion("Hola mundo", TrayIcon.MessageType.WARNING);
                     } catch (InterruptedException ex) {
                     }
                 }
@@ -441,6 +581,10 @@ public class Principal extends javax.swing.JFrame {
     private void textFielTextoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_textFielTextoActionPerformed
         btnBuscarError.doClick();
     }//GEN-LAST:event_textFielTextoActionPerformed
+
+    private void btnAgregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgregarActionPerformed
+        dialogProceso.setMode(DIALOG_STATE.NEW);
+    }//GEN-LAST:event_btnAgregarActionPerformed
 
     /**
      * @param args the command line arguments
@@ -457,25 +601,16 @@ public class Principal extends javax.swing.JFrame {
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             return;
         }
-        final Principal principal = new Principal();
+//        final Principal principal = new Principal();
         //TryIcon
         if (!SystemTray.isSupported()) {
             LOGGER.info("SystemTray is not supported");
             return;
         }
-        final PopupTrayIcon popup = new PopupTrayIcon();
-        final TrayIconBusiness trayIcon = new TrayIconBusiness("Monitoreo Banca Digital", popup);
-        trayIcon.init(principal);
-        popup.addListeners(trayIcon);
-        principal.setDefaultCloseOperation(EXIT_ON_CLOSE);//Se quita
-//        principal.addWindowsListeners(trayIcon);
-
-//        TrayIconBusiness.mostrarNotificacion("se inicia", TrayIcon.MessageType.WARNING);
-        /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                principal.setVisible(true);
+                new Principal().setVisible(true);
             }
         });
     }
@@ -485,6 +620,7 @@ public class Principal extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnAgregar;
     private javax.swing.JButton btnBuscarError;
     private javax.swing.JButton btnRefrescarGeneral;
     private javax.swing.JButton btnRefrescarServidor;
@@ -499,11 +635,15 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
+    private javax.swing.JPanel jPanel6;
+    private javax.swing.JPanel jPanel7;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JTable tablaGenerales;
+    private javax.swing.JTable tablaProcesos;
     private javax.swing.JTable tablaServidores;
     private javax.swing.JTextArea textAreaErrores;
     private javax.swing.JTextField textFielTexto;

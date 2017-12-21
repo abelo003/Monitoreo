@@ -20,6 +20,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Component;
  * @author acruzb
  */
 @Component
+@Scope("prototype")
 public class AnalizadorMonitoreoBusiness {
     
     private static final Logger LOGGER = Logger.getLogger(AnalizadorMonitoreoBusiness.class);

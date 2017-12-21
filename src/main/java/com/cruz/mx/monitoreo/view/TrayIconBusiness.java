@@ -11,22 +11,28 @@ import java.awt.SystemTray;
 import java.awt.TrayIcon;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import javax.swing.JOptionPane;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 /**
  *
  * @author acruzb
  */
+@Component
+@Scope("singleton")
 public class TrayIconBusiness {
+    
+    private static final String TITLE = "Banca Digital - Errores";
 
     private Principal principal;
-    private static TrayIcon trayIcon;
+    private TrayIcon trayIcon;
 
-    public TrayIconBusiness(String tooltip, PopupMenu popup) {
+    public TrayIconBusiness() {}
+
+    public void init(final Principal principal, String tooltip, PopupMenu popup) {
         trayIcon = new TrayIcon(Principal.iconoSistema.getImage(), tooltip, popup);
         trayIcon.setImageAutoSize(true);
-    }
-
-    public void init(final Principal principal) {
         this.principal = principal;
         trayIcon.addActionListener(new ActionListener() {
             @Override
@@ -51,8 +57,25 @@ public class TrayIconBusiness {
         return principal;
     }
     
-    public static void mostrarNotificacion(String mensaje, TrayIcon.MessageType type){
-        trayIcon.displayMessage("Banca Digital - Errores", mensaje, type);
+    public void mostrarNotificacion(String mensaje, TrayIcon.MessageType type, boolean ... showGUI){
+        TrayIcon[] lista = SystemTray.getSystemTray().getTrayIcons();
+        boolean exist = false;
+        for (TrayIcon tray : lista) {
+            if(tray.equals(trayIcon)){
+                exist = true;
+                break;
+            }
+        }
+        if(exist){
+            trayIcon.displayMessage(TITLE, mensaje, type);
+            if(showGUI.length > 0 && showGUI[0]){
+                principal.setVisible(exist);
+                principal.mostrarAlerta(mensaje, TITLE, JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        else{
+            principal.mostrarAlerta(mensaje, TITLE, JOptionPane.ERROR_MESSAGE);
+        }
     }
     
 }

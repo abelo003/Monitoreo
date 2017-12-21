@@ -15,7 +15,7 @@ import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
  * @author acruzb
  */
 @Configuration
-@PropertySource({"classpath:application.properties", "classpath:properties/sistema.properties"})
+@PropertySource({"classpath:application.properties"})
 public class PropertiesConfig {
 
     @Bean
