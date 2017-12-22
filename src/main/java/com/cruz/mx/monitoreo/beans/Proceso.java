@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
 /**
@@ -19,7 +18,6 @@ import org.codehaus.jackson.map.ObjectMapper;
  */
 public class Proceso implements Comparable<Proceso>, Serializable{
     
-    private static final Logger LOGGER = Logger.getLogger(Proceso.class);
     private SimpleDateFormat SDF;
     private static final long serialVersionUID = 1L;
     
@@ -29,11 +27,20 @@ public class Proceso implements Comparable<Proceso>, Serializable{
     private int numAlerta;
     private String textoBusqueda;
     private String mensaje;
+    private transient boolean running;
 
     public Proceso() {
         init();
     }
 
+    public void setRunning(boolean running){
+        this.running = running;
+    }
+    
+    public boolean isRunning(){
+        return running;
+    }
+    
     public Proceso(String sistema, int frecuencia, String rangoTiempo, int numAlerta, String textoBusqueda, String mensaje) {
         this();
         this.sistema = sistema;

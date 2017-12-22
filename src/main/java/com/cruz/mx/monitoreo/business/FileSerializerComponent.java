@@ -60,7 +60,6 @@ public class FileSerializerComponent {
 
     public ListProceso readData() {
         ListProceso procesos = new ListProceso();
-        System.out.println("Se crea: " + procesos.hashCode());
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(PreferenceConfig.RUTA_ARCHIVO))) {
             procesos = (ListProceso) ois.readObject();
         } catch (Exception ex) {

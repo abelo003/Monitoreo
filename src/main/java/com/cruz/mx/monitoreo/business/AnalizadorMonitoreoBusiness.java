@@ -51,6 +51,7 @@ public class AnalizadorMonitoreoBusiness {
                 lista.add(new SistemaGeneral(child.child(0).text(), child.child(1).text(), child.child(2).text(), child.child(3).text(), child.child(4).text(), child.child(5).text()));
             }
         } catch (IOException ex) {
+            LOGGER.info("Ocurrio un error al realizar la busqueda.", ex);
         }
         return lista;
     }
@@ -77,13 +78,13 @@ public class AnalizadorMonitoreoBusiness {
                 lista.add(new Servidor(entry.getKey().toString(), entry.getValue().toString(), "0"));
             }
         } catch (IOException ex) {
-            LOGGER.info("Error", ex);
+            LOGGER.info("Ocurrio un error al realizar la busqueda.", ex);
         }
         return lista;
     }
     
     public Map<String, ListServidorError> buscarErrores(String textoError, String sistema){
-        LOGGER.info("Se inicia la busqueda de errores.");
+        LOGGER.info("Se inicia a buscar el error: " + textoError);
         Document doc;
         Map<String, ListServidorError> lista = new HashMap<>();
         try {
@@ -105,9 +106,8 @@ public class AnalizadorMonitoreoBusiness {
             }
             LOGGER.info("Se encontrato un total de: " + count + " errores.");
         } catch (IOException ex) {
-            LOGGER.info("Error", ex);
+            LOGGER.info("Ocurrio un error al realizar la busqueda.", ex);
         }
-        LOGGER.info("Se encontraron: " + lista.size() + " incidencias con la palabra: " + textoError);
         return lista;
     }
 

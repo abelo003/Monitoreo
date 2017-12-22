@@ -16,7 +16,7 @@ import javax.swing.JProgressBar;
  */
 public class DialogLoading extends javax.swing.JDialog {
 
-    private JProgressBar progressBar;
+    private final JProgressBar progressBar;
     /**
      * Creates new form DialogLoading
      * @param owner

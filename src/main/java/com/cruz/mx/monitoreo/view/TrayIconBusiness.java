@@ -57,6 +57,11 @@ public class TrayIconBusiness {
         return principal;
     }
     
+    public void refreshTableProcesos(){
+        principal.updateOnlyTablaProceso();
+        principal.checkThreadRunning();
+    }
+    
     public void mostrarNotificacion(String mensaje, TrayIcon.MessageType type, boolean ... showGUI){
         TrayIcon[] lista = SystemTray.getSystemTray().getTrayIcons();
         boolean exist = false;

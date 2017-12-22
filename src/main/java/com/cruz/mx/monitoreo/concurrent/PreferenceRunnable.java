@@ -14,52 +14,65 @@ import com.cruz.mx.monitoreo.view.TrayIconBusiness;
 import java.awt.TrayIcon;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 import org.apache.log4j.Logger;
 
 /**
  *
  * @author acruzb
  */
-public class PreferenceRunnable implements Runnable{
+public class PreferenceRunnable extends Thread {
 
     private static final Logger LOGGER = Logger.getLogger(PreferenceRunnable.class);
     private final Proceso proceso;
-    private static final AtomicInteger FREC = new AtomicInteger(100 * 60);
+    private static final AtomicInteger FREC = new AtomicInteger(1000 * 60);
     private final AnalizadorMonitoreoBusiness analizador;
 
     public PreferenceRunnable(Proceso proceso) {
         this.proceso = proceso;
         analizador = Principal.getObject(AnalizadorMonitoreoBusiness.class);
     }
-    
+
+    public Proceso getProceso() {
+        return proceso;
+    }
+
+    public void interruptThread() {
+        LOGGER.info("Se interrumpe el hilo: " + this.getId());
+        this.interrupt();
+    }
+
     @Override
     public void run() {
-        while(true){
-            LOGGER.info("Ejecutando hilo " + Thread.currentThread() + " buscando: " + proceso.getMensaje());
+        while (true) {
             try {
-                Thread.sleep(FREC.intValue() * proceso.getFrecuencia());
+                LOGGER.info("Buscando: " + proceso.getTextoBusqueda());
                 Map<String, ListServidorError> result = analizador.buscarErrores(proceso.getTextoBusqueda(), proceso.getSistema());
-                LOGGER.info(result.size());
                 int count = 0;
                 for (Map.Entry<String, ListServidorError> entry : result.entrySet()) {
                     ListServidorError lista = entry.getValue();
                     count += lista.size();
                 }
                 LOGGER.info("Se encontraton " + count + " errores con el texto: " + proceso.getTextoBusqueda());
-                if(count >= proceso.getNumAlerta()){
+                if (count >= proceso.getNumAlerta()) {
                     TrayIconBusiness trayIconBusiness = getObject(TrayIconBusiness.class);
-                    trayIconBusiness.mostrarNotificacion(proceso.getMensaje(), TrayIcon.MessageType.ERROR, true);
+                    trayIconBusiness.mostrarNotificacion(proceso.getMensaje() + "\n\nSE ENCONTRARON " + count + " ERRORES", TrayIcon.MessageType.ERROR, true);
+                    proceso.setRunning(false);
+                    trayIconBusiness.refreshTableProcesos();
                     break;//Se termina el proceso cuando se encuentra la incidencia
                 }
-                if(!proceso.isActive()){
+                if (!proceso.isActive()) {
+                    TrayIconBusiness trayIconBusiness = getObject(TrayIconBusiness.class);
+                    proceso.setRunning(false);
+                    trayIconBusiness.refreshTableProcesos();
                     break;
                 }
+                Thread.sleep(FREC.intValue() * proceso.getFrecuencia());
             } catch (InterruptedException ex) {
-                java.util.logging.Logger.getLogger(PreferenceRunnable.class.getName()).log(Level.SEVERE, null, ex);
+                proceso.setRunning(false);
+                break;
             }
         }
         LOGGER.info("Se termina el HILO " + Thread.currentThread());
     }
-    
+
 }

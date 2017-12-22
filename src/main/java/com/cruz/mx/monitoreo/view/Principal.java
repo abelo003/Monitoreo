@@ -6,11 +6,11 @@
 package com.cruz.mx.monitoreo.view;
 
 import com.cruz.mx.monitoreo.beans.ListServidorError;
+import com.cruz.mx.monitoreo.beans.ListThreadsProcesos;
 import com.cruz.mx.monitoreo.beans.Proceso;
 import com.cruz.mx.monitoreo.beans.ServidorError;
 import com.cruz.mx.monitoreo.business.AnalizadorMonitoreoBusiness;
 import com.cruz.mx.monitoreo.business.FileSerializerComponent;
-import com.cruz.mx.monitoreo.business.ThreatPoolPreference;
 import com.cruz.mx.monitoreo.concurrent.PreferenceRunnable;
 import com.cruz.mx.monitoreo.concurrent.ThreatChecarProceso;
 import com.cruz.mx.monitoreo.enums.DIALOG_STATE;
@@ -43,6 +43,8 @@ import org.springframework.context.ApplicationContext;
 public class Principal extends javax.swing.JFrame {
 
     private static final Logger LOGGER = Logger.getLogger(Principal.class);
+    private final static String NEW_LINE = "\n";
+    
     public static DialogLoading dialogLoading;
     public static DialogProceso dialogProceso;
     public static ApplicationContext applicationContext;
@@ -54,12 +56,11 @@ public class Principal extends javax.swing.JFrame {
     private AbstractModelProceso modeloProceso;
 
     private final AnalizadorMonitoreoBusiness analizadorBusiness;
-
-    private final static String NEW_LINE = "\n";
-
     private final FileSerializerComponent serializer;
-    private final ThreatPoolPreference threadPool;
+//    private final ThreatPoolPreference threadPool;
     private final TrayIconBusiness trayIconBusiness;
+    
+    private ListThreadsProcesos listaHilosProcesos;
 
     /**
      * Creates new form Principal
@@ -68,18 +69,21 @@ public class Principal extends javax.swing.JFrame {
         initComponents();
         init();
         analizadorBusiness = getObject(AnalizadorMonitoreoBusiness.class);
-        threadPool = getObject(ThreatPoolPreference.class);
+//        threadPool = getObject(ThreatPoolPreference.class);
         final PopupTrayIcon popup = new PopupTrayIcon();
         trayIconBusiness = getObject(TrayIconBusiness.class);
         trayIconBusiness.init(this, "Monitoreo Banca Digital", popup);
         popup.addListeners(trayIconBusiness);
-        addWindowsListeners();//trayIcon Listener for windows
+        setDefaultCloseOperation(EXIT_ON_CLOSE);//SE QUITA
+//        addWindowsListeners();//trayIcon Listener for windows
         serializer = getObject(FileSerializerComponent.class);
         modeloProceso.addAllData(serializer.readData());
+        listaHilosProcesos = new ListThreadsProcesos();
         //Se cargan los hilos de las preferencias
         for (Proceso proceso : modeloProceso.getData().getProcesos()) {
             if(proceso.isActive()){
-                threadPool.excecute(new PreferenceRunnable(proceso));
+                proceso.setRunning(true);
+                addThreadProceso(proceso);
             }
         }
     }
@@ -95,10 +99,8 @@ public class Principal extends javax.swing.JFrame {
         dialogLoading.getRootPane().setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
         this.addComponentListener(new PrincipalEventsAdapter(this, dialogLoading));
 
-        dialogProceso = new DialogProceso(this);
-        dialogProceso.setLocationRelativeTo(this);
-        dialogProceso.getRootPane().setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
-
+        dialogProceso = new DialogProceso(this, false);
+        
         modeloSistema = new AbstractModelSistema();
         tablaGenerales.setModel(modeloSistema);
         tablaGenerales.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -159,25 +161,47 @@ public class Principal extends javax.swing.JFrame {
         LOGGER.info("Se manda a ocultar el loading");
     }
 
+    public void addThreadProceso(Proceso proceso){
+        PreferenceRunnable hilo = new PreferenceRunnable(proceso);
+        listaHilosProcesos.addHilo(hilo);
+        hilo.start();
+    }
+    
     public void addProcesoTabla(Proceso proceso) {
         modeloProceso.addData(proceso);
         modeloProceso.sort();
-        modeloProceso.fireTableDataChanged();
-        tablaProcesos.repaint();
+        if(proceso.isActive()){
+            proceso.setRunning(true);
+            addThreadProceso(proceso);
+        }
+        updateOnlyTablaProceso();
         serializer.writeData(modeloProceso.getData());
     }
     
-    public void updateProcesoTabla(){
-        modeloProceso.fireTableDataChanged();
-        tablaProcesos.repaint();
+    public void updateProcesoTabla(Proceso proceso){
+        checkThreadRunning();
+        if(proceso.isActive()){
+            proceso.setRunning(true);
+            addThreadProceso(proceso);
+        }
+        updateOnlyTablaProceso();
         serializer.writeData(modeloProceso.getData());
     }
     
     public void deleteProcesoTabla(Proceso proceso){
+        checkThreadRunning();
         modeloProceso.deteleData(proceso);
+        updateOnlyTablaProceso();
+        serializer.writeData(modeloProceso.getData());
+    }
+    
+    public void updateOnlyTablaProceso(){
         modeloProceso.fireTableDataChanged();
         tablaProcesos.repaint();
-        serializer.writeData(modeloProceso.getData());
+    }
+    
+    public void checkThreadRunning(){
+        listaHilosProcesos.checkRunningThreads();
     }
     
     public void mostrarAlerta(String mensaje, String titulo, int option){
@@ -219,7 +243,8 @@ public class Principal extends javax.swing.JFrame {
         jPanel6 = new javax.swing.JPanel();
         btnAgregar = new javax.swing.JButton();
         jPanel5 = new javax.swing.JPanel();
-        jButton1 = new javax.swing.JButton();
+        jScrollPane5 = new javax.swing.JScrollPane();
+        textPaneBusquedas = new javax.swing.JTextPane();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -460,12 +485,7 @@ public class Principal extends javax.swing.JFrame {
 
         jTabbedPane1.addTab("Preferencias", jPanel7);
 
-        jButton1.setText("Go ahead");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
-            }
-        });
+        jScrollPane5.setViewportView(textPaneBusquedas);
 
         javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
         jPanel5.setLayout(jPanel5Layout);
@@ -473,18 +493,18 @@ public class Principal extends javax.swing.JFrame {
             jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel5Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jButton1)
-                .addContainerGap(765, Short.MAX_VALUE))
+                .addComponent(jScrollPane5, javax.swing.GroupLayout.DEFAULT_SIZE, 834, Short.MAX_VALUE)
+                .addContainerGap())
         );
         jPanel5Layout.setVerticalGroup(
             jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel5Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jButton1)
-                .addContainerGap(315, Short.MAX_VALUE))
+                .addComponent(jScrollPane5, javax.swing.GroupLayout.DEFAULT_SIZE, 327, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
-        jTabbedPane1.addTab("Background", jPanel5);
+        jTabbedPane1.addTab("Búsquedas realizadas", jPanel5);
 
         jTabbedPane1.setSelectedIndex(2);
 
@@ -560,24 +580,6 @@ public class Principal extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_btnBuscarErrorActionPerformed
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        dispose();
-        Thread hilo = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        Thread.sleep(5000);
-                        System.out.println("se busca...");
-                        trayIconBusiness.mostrarNotificacion("Hola mundo", TrayIcon.MessageType.WARNING);
-                    } catch (InterruptedException ex) {
-                    }
-                }
-            }
-        });
-        hilo.start();
-    }//GEN-LAST:event_jButton1ActionPerformed
-
     private void textFielTextoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_textFielTextoActionPerformed
         btnBuscarError.doClick();
     }//GEN-LAST:event_textFielTextoActionPerformed
@@ -626,7 +628,6 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JButton btnRefrescarServidor;
     private javax.swing.JComboBox<String> comboSistema;
     private javax.swing.JComboBox<String> comboSistemaBusqueda;
-    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -641,11 +642,13 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
+    private javax.swing.JScrollPane jScrollPane5;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JTable tablaGenerales;
     private javax.swing.JTable tablaProcesos;
     private javax.swing.JTable tablaServidores;
     private javax.swing.JTextArea textAreaErrores;
     private javax.swing.JTextField textFielTexto;
+    private javax.swing.JTextPane textPaneBusquedas;
     // End of variables declaration//GEN-END:variables
 }

@@ -16,7 +16,7 @@ import javax.swing.JTextField;
  *
  * @author acruzb
  */
-public class DialogProceso extends javax.swing.JDialog {
+public class DialogProceso extends javax.swing.JDialog{
 
     private final RangeSliderDemo rangerSlider;
     public static final String RANGE_SEPARATOR = " - ";
@@ -26,9 +26,10 @@ public class DialogProceso extends javax.swing.JDialog {
     /**
      * Creates new form DialogProceso
      * @param parent
+     * @param modal
      */
-    public DialogProceso(Principal parent) {
-        super(parent, false);
+    public DialogProceso(Principal parent, boolean modal) {
+        super(parent, modal);
         this.principal = parent;
         initComponents();
         panelSlider.setLayout(new BorderLayout());
@@ -55,6 +56,7 @@ public class DialogProceso extends javax.swing.JDialog {
     public void setMode(DIALOG_STATE mode){
         this.mode = mode;
         setVisible(true);
+        setLocationRelativeTo(principal);
         btnAgregar.setText((mode.equals(DIALOG_STATE.NEW)? "Agregar": "Actualizar"));
         setTitle((mode.equals(DIALOG_STATE.NEW)? "Nueva preferencia": "Actualizar preferencia"));
         if(mode.equals(DIALOG_STATE.NEW)){
@@ -84,7 +86,6 @@ public class DialogProceso extends javax.swing.JDialog {
         comboFrecuencia.setSelectedIndex(0);
         rangerSlider.setTimeRange(9, 19);
     }
-    
     
     /**
      * This method is called from within the constructor to initialize the form.
@@ -268,7 +269,8 @@ public class DialogProceso extends javax.swing.JDialog {
                 proceso.setRangoTiempo(rango);
                 proceso.setSistema(sistema);
                 proceso.setTextoBusqueda(texto);
-                principal.updateProcesoTabla();
+                proceso.setRunning(false);//
+                principal.updateProcesoTabla(proceso);
             }
             this.dispose();
         }
@@ -276,6 +278,7 @@ public class DialogProceso extends javax.swing.JDialog {
 
     private void btnEliminarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEliminarActionPerformed
         if(JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(this, "¿Está seguro de eliminar la preferencia?", "Eliminar preferencia", JOptionPane.YES_NO_OPTION)){
+            proceso.setRunning(false);
             principal.deleteProcesoTabla(proceso);
             this.dispose();
         }
