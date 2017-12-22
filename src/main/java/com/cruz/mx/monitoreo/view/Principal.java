@@ -74,8 +74,8 @@ public class Principal extends javax.swing.JFrame {
         trayIconBusiness = getObject(TrayIconBusiness.class);
         trayIconBusiness.init(this, "Monitoreo Banca Digital", popup);
         popup.addListeners(trayIconBusiness);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);//SE QUITA
-//        addWindowsListeners();//trayIcon Listener for windows
+//        setDefaultCloseOperation(EXIT_ON_CLOSE);//SE QUITA
+        addWindowsListeners();//trayIcon Listener for windows
         serializer = getObject(FileSerializerComponent.class);
         modeloProceso.addAllData(serializer.readData());
         listaHilosProcesos = new ListThreadsProcesos();

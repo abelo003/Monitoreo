@@ -70,7 +70,7 @@ public class DialogProceso extends javax.swing.JDialog{
     public void setData(Proceso proceso){
         this.proceso = proceso;
         comboSistema.setSelectedItem(proceso.getSistema());
-        comboFrecuencia.setSelectedItem(proceso.getFrecuencia());
+        comboFrecuencia.setSelectedItem(String.valueOf(proceso.getFrecuencia()));
         textFieldAlerta.setText(String.valueOf(proceso.getNumAlerta()));
         textFieldTexto.setText(proceso.getTextoBusqueda());
         textFieldMensaje.setText(proceso.getMensaje());
@@ -120,7 +120,7 @@ public class DialogProceso extends javax.swing.JDialog{
 
         jLabel2.setText("Frecuencia (mins)");
 
-        comboFrecuencia.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "2", "5", "10", "15", "20", "30", "40", "50", "60", "120" }));
+        comboFrecuencia.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "1", "2", "5", "10", "15", "20", "30", "40", "50", "60", "120" }));
 
         jLabel3.setText("Rango de tiempo");
 
