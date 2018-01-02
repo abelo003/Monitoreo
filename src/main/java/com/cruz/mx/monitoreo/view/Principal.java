@@ -10,15 +10,19 @@ import com.cruz.mx.monitoreo.beans.ListThreadsProcesos;
 import com.cruz.mx.monitoreo.beans.Proceso;
 import com.cruz.mx.monitoreo.beans.ServidorError;
 import com.cruz.mx.monitoreo.business.AnalizadorMonitoreoBusiness;
+import com.cruz.mx.monitoreo.business.BitsoBusiness;
 import com.cruz.mx.monitoreo.business.FileSerializerComponent;
 import com.cruz.mx.monitoreo.concurrent.PreferenceRunnable;
 import com.cruz.mx.monitoreo.concurrent.ThreatChecarProceso;
+import com.cruz.mx.monitoreo.enums.BITSO_CURRENCY;
 import com.cruz.mx.monitoreo.enums.DIALOG_STATE;
 import com.cruz.mx.monitoreo.enums.LOADING_MODE;
 import com.cruz.mx.monitoreo.listener.PrincipalEventsAdapter;
 import com.cruz.mx.monitoreo.models.AbstractModelProceso;
 import com.cruz.mx.monitoreo.models.AbstractModelServidor;
 import com.cruz.mx.monitoreo.models.AbstractModelSistema;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Point;
@@ -29,6 +33,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Map;
 import javax.swing.BorderFactory;
+import javax.swing.ComboBoxModel;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
@@ -56,6 +62,7 @@ public class Principal extends javax.swing.JFrame {
     private AbstractModelProceso modeloProceso;
 
     private final AnalizadorMonitoreoBusiness analizadorBusiness;
+    private final BitsoBusiness bitsoBusiness;
     private final FileSerializerComponent serializer;
 //    private final ThreatPoolPreference threadPool;
     private final TrayIconBusiness trayIconBusiness;
@@ -69,13 +76,14 @@ public class Principal extends javax.swing.JFrame {
         initComponents();
         init();
         analizadorBusiness = getObject(AnalizadorMonitoreoBusiness.class);
+        bitsoBusiness = getObject(BitsoBusiness.class);
 //        threadPool = getObject(ThreatPoolPreference.class);
         final PopupTrayIcon popup = new PopupTrayIcon();
         trayIconBusiness = getObject(TrayIconBusiness.class);
         trayIconBusiness.init(this, "Monitoreo Banca Digital", popup);
         popup.addListeners(trayIconBusiness);
-//        setDefaultCloseOperation(EXIT_ON_CLOSE);//SE QUITA
-        addWindowsListeners();//trayIcon Listener for windows
+        setDefaultCloseOperation(EXIT_ON_CLOSE);//SE QUITA
+//        addWindowsListeners();//trayIcon Listener for windows
         serializer = getObject(FileSerializerComponent.class);
         modeloProceso.addAllData(serializer.readData());
         listaHilosProcesos = new ListThreadsProcesos();
@@ -125,6 +133,9 @@ public class Principal extends javax.swing.JFrame {
                 }
             }
         });
+        ComboBoxModel modeloCurrency = new DefaultComboBoxModel(BITSO_CURRENCY.values());
+        
+        comboBoxCurrency.setModel(modeloCurrency);
     }
     
     public TrayIconBusiness getTrayIconBusiness(){
@@ -246,6 +257,12 @@ public class Principal extends javax.swing.JFrame {
         jScrollPane5 = new javax.swing.JScrollPane();
         textPaneBusquedas = new javax.swing.JTextPane();
         jPanel8 = new javax.swing.JPanel();
+        jPanel9 = new javax.swing.JPanel();
+        comboBoxCurrency = new javax.swing.JComboBox<>();
+        jLabel4 = new javax.swing.JLabel();
+        panelGrafica = new javax.swing.JPanel();
+        jLabel5 = new javax.swing.JLabel();
+        comboRecurrencia = new javax.swing.JComboBox<>();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -507,15 +524,72 @@ public class Principal extends javax.swing.JFrame {
 
         jTabbedPane1.addTab("Búsquedas realizadas", jPanel5);
 
+        comboBoxCurrency.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        comboBoxCurrency.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                comboBoxCurrencyActionPerformed(evt);
+            }
+        });
+
+        jLabel4.setText("Cambio de moneda");
+
+        panelGrafica.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        panelGrafica.setLayout(new java.awt.BorderLayout());
+
+        jLabel5.setText("Recurrencia");
+
+        comboRecurrencia.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "2", "5", "10", "20", "30", "60", "120", "1000" }));
+
+        javax.swing.GroupLayout jPanel9Layout = new javax.swing.GroupLayout(jPanel9);
+        jPanel9.setLayout(jPanel9Layout);
+        jPanel9Layout.setHorizontalGroup(
+            jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel9Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(panelGrafica, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(jPanel9Layout.createSequentialGroup()
+                        .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel4)
+                            .addComponent(comboBoxCurrency, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(comboRecurrencia, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, 140, Short.MAX_VALUE))
+                        .addGap(0, 516, Short.MAX_VALUE)))
+                .addContainerGap())
+        );
+        jPanel9Layout.setVerticalGroup(
+            jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel9Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel4)
+                    .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(comboBoxCurrency, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(comboRecurrencia, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(panelGrafica, javax.swing.GroupLayout.DEFAULT_SIZE, 254, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
         javax.swing.GroupLayout jPanel8Layout = new javax.swing.GroupLayout(jPanel8);
         jPanel8.setLayout(jPanel8Layout);
         jPanel8Layout.setHorizontalGroup(
             jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 854, Short.MAX_VALUE)
+            .addGroup(jPanel8Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jPanel9, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
         jPanel8Layout.setVerticalGroup(
             jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 349, Short.MAX_VALUE)
+            .addGroup(jPanel8Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jPanel9, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
         jTabbedPane1.addTab("BITSO", jPanel8);
@@ -602,6 +676,32 @@ public class Principal extends javax.swing.JFrame {
         dialogProceso.setMode(DIALOG_STATE.NEW);
     }//GEN-LAST:event_btnAgregarActionPerformed
 
+    private void comboBoxCurrencyActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_comboBoxCurrencyActionPerformed
+        LOGGER.info(comboBoxCurrency.getSelectedItem().toString());
+        JsonNode node = bitsoBusiness.consultarCambio(BITSO_CURRENCY.valueOf(comboBoxCurrency.getSelectedItem().toString()));
+        GraficaBarras grafica = obtenerGraficaBarras(node);
+        if(null != grafica){
+            panelGrafica.removeAll();
+            panelGrafica.add(grafica, BorderLayout.CENTER);
+            panelGrafica.repaint();
+            panelGrafica.revalidate();
+        }
+        else{
+            JOptionPane.showMessageDialog(this, "No se pudo obtener la información de forma correcta.");
+        }
+        LOGGER.info(node);
+    }//GEN-LAST:event_comboBoxCurrencyActionPerformed
+
+    
+    private GraficaBarras obtenerGraficaBarras(JsonNode node){
+        if(node.get("success").asBoolean()){
+            double minimo = node.get("payload").get("low").asDouble();
+            double actual = node.get("payload").get("last").asDouble();
+            double maximo = node.get("payload").get("high").asDouble();
+            return new GraficaBarras(comboBoxCurrency.getSelectedItem().toString(), minimo, actual, maximo);
+        }
+        return null;
+    }
     /**
      * @param args the command line arguments
      */
@@ -640,11 +740,15 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JButton btnBuscarError;
     private javax.swing.JButton btnRefrescarGeneral;
     private javax.swing.JButton btnRefrescarServidor;
+    private javax.swing.JComboBox<String> comboBoxCurrency;
+    private javax.swing.JComboBox<String> comboRecurrencia;
     private javax.swing.JComboBox<String> comboSistema;
     private javax.swing.JComboBox<String> comboSistemaBusqueda;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
@@ -653,12 +757,14 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel6;
     private javax.swing.JPanel jPanel7;
     private javax.swing.JPanel jPanel8;
+    private javax.swing.JPanel jPanel9;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JScrollPane jScrollPane5;
     private javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JPanel panelGrafica;
     private javax.swing.JTable tablaGenerales;
     private javax.swing.JTable tablaProcesos;
     private javax.swing.JTable tablaServidores;
