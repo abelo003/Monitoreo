@@ -25,12 +25,14 @@ public class Proceso implements Comparable<Proceso>, Serializable{
     private int frecuencia;
     private String rangoTiempo;
     private int numAlerta;
+    private int numIncidencias;
     private String textoBusqueda;
     private String mensaje;
     private transient boolean running;
 
     public Proceso() {
         init();
+        this.numIncidencias = 0;
     }
 
     public void setRunning(boolean running){
@@ -49,6 +51,14 @@ public class Proceso implements Comparable<Proceso>, Serializable{
         this.numAlerta = numAlerta;
         this.textoBusqueda = textoBusqueda;
         this.mensaje = mensaje;
+    }
+
+    public int getNumIncidencias() {
+        return numIncidencias;
+    }
+
+    public void setNumIncidencias(int numIncidencias) {
+        this.numIncidencias = numIncidencias;
     }
 
     private void init(){

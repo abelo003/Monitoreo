@@ -16,7 +16,7 @@ import javax.swing.table.AbstractTableModel;
  */
 public class AbstractModelProceso extends AbstractTableModel{
     
-    private final String[] columnNames = { "Sistema", "Frecuencia", "Rango de tiempo", "Alerta en...", "Texto de búsqueda", "Mensaje", "En horario", "Ejecutandose"};
+    private final String[] columnNames = { "Sistema", "Frecuencia", "Rango de tiempo", "Incidencias", "Alerta en", "Texto de búsqueda", "Mensaje", "En horario", "Ejecutandose"};
 
     private ListProceso procesos;
 
@@ -47,14 +47,16 @@ public class AbstractModelProceso extends AbstractTableModel{
             case 2:
                 return staff.getRangoTiempo();
             case 3:
-                return staff.getNumAlerta();
+                return staff.getNumIncidencias();
             case 4:
-                return staff.getTextoBusqueda();
+                return staff.getNumAlerta();
             case 5:
-                return staff.getMensaje();
+                return staff.getTextoBusqueda();
             case 6:
-                return staff.isActive();
+                return staff.getMensaje();
             case 7:
+                return staff.isActive();
+            case 8:
                 return staff.isRunning();
         }
         return "";

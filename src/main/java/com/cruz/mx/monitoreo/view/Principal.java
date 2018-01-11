@@ -5,6 +5,7 @@
  */
 package com.cruz.mx.monitoreo.view;
 
+import com.cruz.mx.monitoreo.ShapedWindowDemo;
 import com.cruz.mx.monitoreo.beans.ListServidorError;
 import com.cruz.mx.monitoreo.beans.ListThreadsProcesos;
 import com.cruz.mx.monitoreo.beans.Proceso;
@@ -12,8 +13,10 @@ import com.cruz.mx.monitoreo.beans.ServidorError;
 import com.cruz.mx.monitoreo.business.AnalizadorMonitoreoBusiness;
 import com.cruz.mx.monitoreo.business.BitsoBusiness;
 import com.cruz.mx.monitoreo.business.FileSerializerComponent;
+import com.cruz.mx.monitoreo.business.ThreatPoolPreference;
 import com.cruz.mx.monitoreo.concurrent.PreferenceRunnable;
-import com.cruz.mx.monitoreo.concurrent.ThreatChecarProceso;
+import com.cruz.mx.monitoreo.concurrent.ThreadChecarProceso;
+import com.cruz.mx.monitoreo.concurrent.ThreadXRP;
 import com.cruz.mx.monitoreo.enums.BITSO_CURRENCY;
 import com.cruz.mx.monitoreo.enums.DIALOG_STATE;
 import com.cruz.mx.monitoreo.enums.LOADING_MODE;
@@ -25,6 +28,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.SystemTray;
 import java.awt.Toolkit;
@@ -32,11 +36,15 @@ import java.awt.TrayIcon;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
 import javax.swing.ComboBoxModel;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
+import javax.swing.JRadioButton;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import org.apache.log4j.Logger;
@@ -50,7 +58,7 @@ public class Principal extends javax.swing.JFrame {
 
     private static final Logger LOGGER = Logger.getLogger(Principal.class);
     private final static String NEW_LINE = "\n";
-    
+
     public static DialogLoading dialogLoading;
     public static DialogProceso dialogProceso;
     public static ApplicationContext applicationContext;
@@ -64,32 +72,35 @@ public class Principal extends javax.swing.JFrame {
     private final AnalizadorMonitoreoBusiness analizadorBusiness;
     private final BitsoBusiness bitsoBusiness;
     private final FileSerializerComponent serializer;
-//    private final ThreatPoolPreference threadPool;
+    private final ThreatPoolPreference threadPool;
     private final TrayIconBusiness trayIconBusiness;
-    
+
     private ListThreadsProcesos listaHilosProcesos;
+    private ThreadXRP threadXRP;
+    private WindowXRP windowXRP;
 
     /**
      * Creates new form Principal
      */
     public Principal() {
         initComponents();
+        threadPool = getObject(ThreatPoolPreference.class);
         init();
+        initPanelXRP();
         analizadorBusiness = getObject(AnalizadorMonitoreoBusiness.class);
         bitsoBusiness = getObject(BitsoBusiness.class);
-//        threadPool = getObject(ThreatPoolPreference.class);
         final PopupTrayIcon popup = new PopupTrayIcon();
         trayIconBusiness = getObject(TrayIconBusiness.class);
         trayIconBusiness.init(this, "Monitoreo Banca Digital", popup);
         popup.addListeners(trayIconBusiness);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);//SE QUITA
-//        addWindowsListeners();//trayIcon Listener for windows
+//        setDefaultCloseOperation(EXIT_ON_CLOSE);//SE QUITA
+        addWindowsListeners();//trayIcon Listener for windows
         serializer = getObject(FileSerializerComponent.class);
         modeloProceso.addAllData(serializer.readData());
         listaHilosProcesos = new ListThreadsProcesos();
         //Se cargan los hilos de las preferencias
         for (Proceso proceso : modeloProceso.getData().getProcesos()) {
-            if(proceso.isActive()){
+            if (proceso.isActive()) {
                 proceso.setRunning(true);
                 addThreadProceso(proceso);
             }
@@ -108,7 +119,7 @@ public class Principal extends javax.swing.JFrame {
         this.addComponentListener(new PrincipalEventsAdapter(this, dialogLoading));
 
         dialogProceso = new DialogProceso(this, false);
-        
+
         modeloSistema = new AbstractModelSistema();
         tablaGenerales.setModel(modeloSistema);
         tablaGenerales.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -134,11 +145,40 @@ public class Principal extends javax.swing.JFrame {
             }
         });
         ComboBoxModel modeloCurrency = new DefaultComboBoxModel(BITSO_CURRENCY.values());
-        
+
         comboBoxCurrency.setModel(modeloCurrency);
     }
+
+    private void initPanelXRP() {
+        panelRadios.setLayout(new GridLayout(10, 1));
+        ButtonGroup group = new ButtonGroup();
+        JRadioButton radios[] = new JRadioButton[7];
+        radios[0] = new JRadioButton(1 + " seg");
+        radios[1] = new JRadioButton(3 + " seg");
+        radios[2] = new JRadioButton(5 + " seg", true);
+        radios[3] = new JRadioButton(10 + " seg");
+        radios[4] = new JRadioButton(20 + " seg");
+        radios[5] = new JRadioButton(30 + " seg");
+        radios[6] = new JRadioButton(60 + " seg");
+        for (JRadioButton radio : radios) {
+            panelRadios.add(radio);
+            group.add(radio);
+            addListenerRadio(radio);
+        }
+        threadXRP = new ThreadXRP(5, this);
+        threadPool.excecute(threadXRP);
+    }
     
-    public TrayIconBusiness getTrayIconBusiness(){
+    public void setXRPMXN(double low, double precio, double high){
+        this.labelPrecioXRPLow.setText(String.format("$%.2f", low));
+        this.labelPrecioXRP.setText(String.format("$%.2f", precio));
+        this.labelPrecioXRPHigh.setText(String.format("$%.2f", high));
+        if(windowXRP != null){
+            windowXRP.setXRPMXN(low, precio, high);
+        }
+    }
+
+    public TrayIconBusiness getTrayIconBusiness() {
         return trayIconBusiness;
     }
 
@@ -172,50 +212,50 @@ public class Principal extends javax.swing.JFrame {
         LOGGER.info("Se manda a ocultar el loading");
     }
 
-    public void addThreadProceso(Proceso proceso){
+    public void addThreadProceso(Proceso proceso) {
         PreferenceRunnable hilo = new PreferenceRunnable(proceso);
         listaHilosProcesos.addHilo(hilo);
         hilo.start();
     }
-    
+
     public void addProcesoTabla(Proceso proceso) {
         modeloProceso.addData(proceso);
         modeloProceso.sort();
-        if(proceso.isActive()){
+        if (proceso.isActive()) {
             proceso.setRunning(true);
             addThreadProceso(proceso);
         }
         updateOnlyTablaProceso();
         serializer.writeData(modeloProceso.getData());
     }
-    
-    public void updateProcesoTabla(Proceso proceso){
+
+    public void updateProcesoTabla(Proceso proceso) {
         checkThreadRunning();
-        if(proceso.isActive()){
+        if (proceso.isActive()) {
             proceso.setRunning(true);
             addThreadProceso(proceso);
         }
         updateOnlyTablaProceso();
         serializer.writeData(modeloProceso.getData());
     }
-    
-    public void deleteProcesoTabla(Proceso proceso){
+
+    public void deleteProcesoTabla(Proceso proceso) {
         checkThreadRunning();
         modeloProceso.deteleData(proceso);
         updateOnlyTablaProceso();
         serializer.writeData(modeloProceso.getData());
     }
-    
-    public void updateOnlyTablaProceso(){
+
+    public void updateOnlyTablaProceso() {
         modeloProceso.fireTableDataChanged();
         tablaProcesos.repaint();
     }
-    
-    public void checkThreadRunning(){
+
+    public void checkThreadRunning() {
         listaHilosProcesos.checkRunningThreads();
     }
-    
-    public void mostrarAlerta(String mensaje, String titulo, int option){
+
+    public void mostrarAlerta(String mensaje, String titulo, int option) {
         JOptionPane.showMessageDialog(this, mensaje, titulo, option);
     }
 
@@ -263,6 +303,12 @@ public class Principal extends javax.swing.JFrame {
         panelGrafica = new javax.swing.JPanel();
         jLabel5 = new javax.swing.JLabel();
         comboRecurrencia = new javax.swing.JComboBox<>();
+        jPanel10 = new javax.swing.JPanel();
+        btnActualizarAhora = new javax.swing.JButton();
+        panelRadios = new javax.swing.JPanel();
+        labelPrecioXRP = new javax.swing.JLabel();
+        labelPrecioXRPLow = new javax.swing.JLabel();
+        labelPrecioXRPHigh = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -594,7 +640,77 @@ public class Principal extends javax.swing.JFrame {
 
         jTabbedPane1.addTab("BITSO", jPanel8);
 
-        jTabbedPane1.setSelectedIndex(2);
+        btnActualizarAhora.setText("Ventana siempre activa");
+        btnActualizarAhora.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnActualizarAhoraActionPerformed(evt);
+            }
+        });
+
+        panelRadios.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        panelRadios.setPreferredSize(new java.awt.Dimension(75, 327));
+
+        javax.swing.GroupLayout panelRadiosLayout = new javax.swing.GroupLayout(panelRadios);
+        panelRadios.setLayout(panelRadiosLayout);
+        panelRadiosLayout.setHorizontalGroup(
+            panelRadiosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 70, Short.MAX_VALUE)
+        );
+        panelRadiosLayout.setVerticalGroup(
+            panelRadiosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 323, Short.MAX_VALUE)
+        );
+
+        labelPrecioXRP.setFont(new java.awt.Font("Times New Roman", 1, 85)); // NOI18N
+        labelPrecioXRP.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        labelPrecioXRP.setText("$00.00");
+
+        labelPrecioXRPLow.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        labelPrecioXRPLow.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        labelPrecioXRPLow.setText("$00.00");
+
+        labelPrecioXRPHigh.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        labelPrecioXRPHigh.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        labelPrecioXRPHigh.setText("$00.00");
+
+        javax.swing.GroupLayout jPanel10Layout = new javax.swing.GroupLayout(jPanel10);
+        jPanel10.setLayout(jPanel10Layout);
+        jPanel10Layout.setHorizontalGroup(
+            jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel10Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(panelRadios, 74, 74, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(labelPrecioXRP, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(jPanel10Layout.createSequentialGroup()
+                        .addComponent(btnActualizarAhora)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(jPanel10Layout.createSequentialGroup()
+                        .addComponent(labelPrecioXRPLow, javax.swing.GroupLayout.PREFERRED_SIZE, 135, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 480, Short.MAX_VALUE)
+                        .addComponent(labelPrecioXRPHigh, javax.swing.GroupLayout.PREFERRED_SIZE, 135, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap())
+        );
+        jPanel10Layout.setVerticalGroup(
+            jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel10Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel10Layout.createSequentialGroup()
+                        .addComponent(btnActualizarAhora)
+                        .addGap(18, 18, 18)
+                        .addComponent(labelPrecioXRP, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(labelPrecioXRPLow)
+                            .addComponent(labelPrecioXRPHigh))
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addComponent(panelRadios, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+
+        jTabbedPane1.addTab("XRP", jPanel10);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -622,7 +738,7 @@ public class Principal extends javax.swing.JFrame {
             }
         });
         miHilo.start();
-        new ThreatChecarProceso(miHilo).start();
+        new ThreadChecarProceso(miHilo).start();
     }//GEN-LAST:event_btnRefrescarGeneralActionPerformed
 
     private void btnRefrescarServidorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRefrescarServidorActionPerformed
@@ -637,7 +753,7 @@ public class Principal extends javax.swing.JFrame {
             }
         });
         miHilo.start();
-        new ThreatChecarProceso(miHilo).start();
+        new ThreadChecarProceso(miHilo).start();
     }//GEN-LAST:event_btnRefrescarServidorActionPerformed
 
     private void btnBuscarErrorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarErrorActionPerformed
@@ -664,7 +780,7 @@ public class Principal extends javax.swing.JFrame {
                 }
             });
             miHilo.start();
-            new ThreatChecarProceso(miHilo).start();
+            new ThreadChecarProceso(miHilo).start();
         }
     }//GEN-LAST:event_btnBuscarErrorActionPerformed
 
@@ -680,21 +796,44 @@ public class Principal extends javax.swing.JFrame {
         LOGGER.info(comboBoxCurrency.getSelectedItem().toString());
         JsonNode node = bitsoBusiness.consultarCambio(BITSO_CURRENCY.valueOf(comboBoxCurrency.getSelectedItem().toString()));
         GraficaBarras grafica = obtenerGraficaBarras(node);
-        if(null != grafica){
+        if (null != grafica) {
             panelGrafica.removeAll();
             panelGrafica.add(grafica, BorderLayout.CENTER);
             panelGrafica.repaint();
             panelGrafica.revalidate();
-        }
-        else{
+        } else {
             JOptionPane.showMessageDialog(this, "No se pudo obtener la información de forma correcta.");
         }
         LOGGER.info(node);
     }//GEN-LAST:event_comboBoxCurrencyActionPerformed
 
-    
-    private GraficaBarras obtenerGraficaBarras(JsonNode node){
-        if(node.get("success").asBoolean()){
+    private void btnActualizarAhoraActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnActualizarAhoraActionPerformed
+        if(null == windowXRP){
+            windowXRP = new WindowXRP();
+            windowXRP.mostrar();
+        }
+        else{
+            windowXRP.setVisible(true);
+        }
+    }//GEN-LAST:event_btnActualizarAhoraActionPerformed
+
+    private void addListenerRadio(final JRadioButton radio) {
+        final Pattern p = Pattern.compile("\\d+");
+        radio.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                Matcher m = p.matcher(radio.getText());
+                if (m.find()) {
+                    int tiempo = Integer.valueOf(m.group());
+                    threadXRP.setTiempo(tiempo);
+                }
+            }
+        }
+        );
+    }
+
+    private GraficaBarras obtenerGraficaBarras(JsonNode node) {
+        if (node.get("success").asBoolean()) {
             double minimo = node.get("payload").get("low").asDouble();
             double actual = node.get("payload").get("last").asDouble();
             double maximo = node.get("payload").get("high").asDouble();
@@ -702,6 +841,7 @@ public class Principal extends javax.swing.JFrame {
         }
         return null;
     }
+
     /**
      * @param args the command line arguments
      */
@@ -717,8 +857,6 @@ public class Principal extends javax.swing.JFrame {
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             return;
         }
-//        final Principal principal = new Principal();
-        //TryIcon
         if (!SystemTray.isSupported()) {
             LOGGER.info("SystemTray is not supported");
             return;
@@ -736,6 +874,7 @@ public class Principal extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnActualizarAhora;
     private javax.swing.JButton btnAgregar;
     private javax.swing.JButton btnBuscarError;
     private javax.swing.JButton btnRefrescarGeneral;
@@ -750,6 +889,7 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel10;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
@@ -764,7 +904,11 @@ public class Principal extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JScrollPane jScrollPane5;
     private javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JLabel labelPrecioXRP;
+    private javax.swing.JLabel labelPrecioXRPHigh;
+    private javax.swing.JLabel labelPrecioXRPLow;
     private javax.swing.JPanel panelGrafica;
+    private javax.swing.JPanel panelRadios;
     private javax.swing.JTable tablaGenerales;
     private javax.swing.JTable tablaProcesos;
     private javax.swing.JTable tablaServidores;

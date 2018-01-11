@@ -52,6 +52,7 @@ public class PreferenceRunnable extends Thread {
                     ListServidorError lista = entry.getValue();
                     count += lista.size();
                 }
+                proceso.setNumIncidencias(count);
                 LOGGER.info("Se encontraton " + count + " errores con el texto: " + proceso.getTextoBusqueda());
                 if (count >= proceso.getNumAlerta()) {
                     TrayIconBusiness trayIconBusiness = getObject(TrayIconBusiness.class);

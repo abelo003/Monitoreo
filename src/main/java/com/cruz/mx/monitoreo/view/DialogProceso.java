@@ -259,8 +259,7 @@ public class DialogProceso extends javax.swing.JDialog{
                 return;
             }
             if(mode.equals(DIALOG_STATE.NEW)){
-                Proceso proceso = new Proceso(sistema, frecuencia, rango, Integer.parseInt(numAlerta), texto, mensaje);
-                principal.addProcesoTabla(proceso);
+                principal.addProcesoTabla(new Proceso(sistema, frecuencia, rango, Integer.parseInt(numAlerta), texto, mensaje));
             }
             else{
                 proceso.setFrecuencia(frecuencia);

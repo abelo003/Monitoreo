@@ -71,6 +71,11 @@
             <artifactId>jfreechart</artifactId>
             <version>1.5.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.bitsoex</groupId>
+            <artifactId>bitso-java</artifactId>
+            <version>v3.0.5</version>
+        </dependency>
     </dependencies>
     
     <build>
@@ -125,6 +130,10 @@
     </build>
     <!-- Environment Settings -->
     <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
         <repository>
             <id>central</id>
             <url>https://repo1.maven.org/maven2</url>

@@ -15,11 +15,11 @@ import java.util.logging.Logger;
  *
  * @author Temporal
  */
-public class ThreatChecarProceso extends Thread{
+public class ThreadChecarProceso extends Thread{
     
     private final Thread hiloSuperior;
 
-    public ThreatChecarProceso(Thread hiloSuperior) {
+    public ThreadChecarProceso(Thread hiloSuperior) {
         this.hiloSuperior = hiloSuperior;
     }
     
