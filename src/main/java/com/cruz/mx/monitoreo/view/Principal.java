@@ -5,7 +5,6 @@
  */
 package com.cruz.mx.monitoreo.view;
 
-import com.cruz.mx.monitoreo.ShapedWindowDemo;
 import com.cruz.mx.monitoreo.beans.ListServidorError;
 import com.cruz.mx.monitoreo.beans.ListThreadsProcesos;
 import com.cruz.mx.monitoreo.beans.Proceso;

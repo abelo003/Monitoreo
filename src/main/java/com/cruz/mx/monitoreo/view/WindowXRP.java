@@ -5,11 +5,16 @@
  */
 package com.cruz.mx.monitoreo.view;
 
+import com.cruz.mx.monitoreo.enums.OSType;
+import com.cruz.mx.monitoreo.utils.SistemaOperativo;
 import java.awt.Color;
 import java.awt.GraphicsDevice;
 import static java.awt.GraphicsDevice.WindowTranslucency.PERPIXEL_TRANSPARENT;
 import static java.awt.GraphicsDevice.WindowTranslucency.TRANSLUCENT;
 import java.awt.GraphicsEnvironment;
+import java.awt.Point;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
@@ -31,6 +36,22 @@ public class WindowXRP extends javax.swing.JDialog {
         setBackground(new Color(0, 0, 0, 0));
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         initComponents();
+        addComponentListener(new ComponentAdapter() {
+            Point lastLocation;
+
+            @Override
+            public void componentMoved(ComponentEvent e) {
+                if (lastLocation == null && isVisible()) {
+                    lastLocation = getLocation();
+                } else {
+                    Point newLocation = getLocation();
+                    int dx = newLocation.x - lastLocation.x;
+                    int dy = newLocation.y - lastLocation.y;
+                    setLocation(getX() + dx, getY() + dy);
+                    lastLocation = newLocation;
+                }
+            }
+        });
     }
 
     public void setXRPMXN(double low, double precio, double high) {
@@ -101,7 +122,7 @@ public class WindowXRP extends javax.swing.JDialog {
     }// </editor-fold>//GEN-END:initComponents
 
     private void mouseClickDoble(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_mouseClickDoble
-        if(evt.getClickCount() == 2){
+        if (evt.getClickCount() == 2) {
             setVisible(false);
         }
     }//GEN-LAST:event_mouseClickDoble
@@ -142,9 +163,19 @@ public class WindowXRP extends javax.swing.JDialog {
                 // Display the window.
                 sw.setVisible(true);
                 sw.setAlwaysOnTop(true);
-                sw.setLocation(getX(), 0);
+                if(SistemaOperativo.getOperatingSystemType().equals(OSType.MacOS)){
+                    sw.setLocation(getX(), 20);
+                }
+                else{
+                    sw.setLocation(getX(), 0);
+                }
             }
         });
+    }
+
+    public static void main(String[] args) {
+        WindowXRP d = new WindowXRP();
+        d.mostrar();
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
