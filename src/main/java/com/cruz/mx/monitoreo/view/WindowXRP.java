@@ -173,11 +173,6 @@ public class WindowXRP extends javax.swing.JDialog {
         });
     }
 
-    public static void main(String[] args) {
-        WindowXRP d = new WindowXRP();
-        d.mostrar();
-    }
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel labelPrecioXRP;
     private javax.swing.JLabel labelPrecioXRPHigh;
