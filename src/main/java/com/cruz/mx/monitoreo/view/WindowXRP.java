@@ -15,6 +15,9 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Point;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
@@ -127,9 +130,6 @@ public class WindowXRP extends javax.swing.JDialog {
         }
     }//GEN-LAST:event_mouseClickDoble
 
-    /**
-     * @param args the command line arguments
-     */
     public void mostrar() {
         // Determine what the GraphicsDevice can support.
         GraphicsEnvironment ge
@@ -169,8 +169,42 @@ public class WindowXRP extends javax.swing.JDialog {
                 else{
                     sw.setLocation(getX(), 0);
                 }
+                FrameDragListener frameDragListener = new FrameDragListener(sw);
+                sw.addMouseListener(frameDragListener);
+                sw.addMouseMotionListener(frameDragListener);
             }
         });
+    }
+        
+    static class FrameDragListener extends MouseAdapter {
+
+        private final JDialog frame;
+        private Point mouseDownCompCoords = null;
+
+        public FrameDragListener(JDialog frame) {
+            this.frame = frame;
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+            mouseDownCompCoords = null;
+        }
+
+        @Override
+        public void mousePressed(MouseEvent e) {
+            mouseDownCompCoords = e.getPoint();
+        }
+
+        @Override
+        public void mouseDragged(MouseEvent e) {
+            Point currCoords = e.getLocationOnScreen();
+            if(SistemaOperativo.getOperatingSystemType().equals(OSType.MacOS)){
+                frame.setLocation(currCoords.x - mouseDownCompCoords.x, currCoords.y - mouseDownCompCoords.y + 20);
+            }
+            else{
+                frame.setLocation(currCoords.x - mouseDownCompCoords.x, currCoords.y - mouseDownCompCoords.y);
+            }
+        }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

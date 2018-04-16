@@ -84,7 +84,7 @@ public class AnalizadorMonitoreoBusiness {
     }
     
     public Map<String, ListServidorError> buscarErrores(String textoError, String sistema){
-        LOGGER.info("Se inicia a buscar el error: " + textoError);
+        LOGGER.info("Se inicia a buscar el error: " + textoError + " en el sistema: " + sistema);
         Document doc;
         Map<String, ListServidorError> lista = new HashMap<>();
         try {

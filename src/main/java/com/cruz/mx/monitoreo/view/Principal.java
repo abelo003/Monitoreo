@@ -15,7 +15,7 @@ import com.cruz.mx.monitoreo.business.FileSerializerComponent;
 import com.cruz.mx.monitoreo.business.ThreatPoolPreference;
 import com.cruz.mx.monitoreo.concurrent.PreferenceRunnable;
 import com.cruz.mx.monitoreo.concurrent.ThreadChecarProceso;
-import com.cruz.mx.monitoreo.concurrent.ThreadXRP;
+//import com.cruz.mx.monitoreo.concurrent.ThreadXRP;
 import com.cruz.mx.monitoreo.enums.BITSO_CURRENCY;
 import com.cruz.mx.monitoreo.enums.DIALOG_STATE;
 import com.cruz.mx.monitoreo.enums.LOADING_MODE;
@@ -75,7 +75,7 @@ public class Principal extends javax.swing.JFrame {
     private final TrayIconBusiness trayIconBusiness;
 
     private ListThreadsProcesos listaHilosProcesos;
-    private ThreadXRP threadXRP;
+//    private ThreadXRP threadXRP;
     private WindowXRP windowXRP;
 
     /**
@@ -149,23 +149,23 @@ public class Principal extends javax.swing.JFrame {
     }
 
     private void initPanelXRP() {
-        panelRadios.setLayout(new GridLayout(10, 1));
-        ButtonGroup group = new ButtonGroup();
-        JRadioButton radios[] = new JRadioButton[7];
-        radios[0] = new JRadioButton(1 + " seg");
-        radios[1] = new JRadioButton(3 + " seg");
-        radios[2] = new JRadioButton(5 + " seg", true);
-        radios[3] = new JRadioButton(10 + " seg");
-        radios[4] = new JRadioButton(20 + " seg");
-        radios[5] = new JRadioButton(30 + " seg");
-        radios[6] = new JRadioButton(60 + " seg");
-        for (JRadioButton radio : radios) {
-            panelRadios.add(radio);
-            group.add(radio);
-            addListenerRadio(radio);
-        }
-        threadXRP = new ThreadXRP(5, this);
-        threadPool.excecute(threadXRP);
+//        panelRadios.setLayout(new GridLayout(10, 1));
+//        ButtonGroup group = new ButtonGroup();
+//        JRadioButton radios[] = new JRadioButton[7];
+//        radios[0] = new JRadioButton(1 + " seg");
+//        radios[1] = new JRadioButton(3 + " seg");
+//        radios[2] = new JRadioButton(5 + " seg", true);
+//        radios[3] = new JRadioButton(10 + " seg");
+//        radios[4] = new JRadioButton(20 + " seg");
+//        radios[5] = new JRadioButton(30 + " seg");
+//        radios[6] = new JRadioButton(60 + " seg");
+//        for (JRadioButton radio : radios) {
+//            panelRadios.add(radio);
+//            group.add(radio);
+//            addListenerRadio(radio);
+//        }
+//        threadXRP = new ThreadXRP(5, this);
+//        threadPool.excecute(threadXRP);
     }
     
     public void setXRPMXN(double low, double precio, double high){
@@ -792,18 +792,18 @@ public class Principal extends javax.swing.JFrame {
     }//GEN-LAST:event_btnAgregarActionPerformed
 
     private void comboBoxCurrencyActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_comboBoxCurrencyActionPerformed
-        LOGGER.info(comboBoxCurrency.getSelectedItem().toString());
-        JsonNode node = bitsoBusiness.consultarCambio(BITSO_CURRENCY.valueOf(comboBoxCurrency.getSelectedItem().toString()));
-        GraficaBarras grafica = obtenerGraficaBarras(node);
-        if (null != grafica) {
-            panelGrafica.removeAll();
-            panelGrafica.add(grafica, BorderLayout.CENTER);
-            panelGrafica.repaint();
-            panelGrafica.revalidate();
-        } else {
-            JOptionPane.showMessageDialog(this, "No se pudo obtener la información de forma correcta.");
-        }
-        LOGGER.info(node);
+//        LOGGER.info(comboBoxCurrency.getSelectedItem().toString());
+//        JsonNode node = bitsoBusiness.consultarCambio(BITSO_CURRENCY.valueOf(comboBoxCurrency.getSelectedItem().toString()));
+//        GraficaBarras grafica = obtenerGraficaBarras(node);
+//        if (null != grafica) {
+//            panelGrafica.removeAll();
+//            panelGrafica.add(grafica, BorderLayout.CENTER);
+//            panelGrafica.repaint();
+//            panelGrafica.revalidate();
+//        } else {
+//            JOptionPane.showMessageDialog(this, "No se pudo obtener la información de forma correcta.");
+//        }
+//        LOGGER.info(node);
     }//GEN-LAST:event_comboBoxCurrencyActionPerformed
 
     private void btnActualizarAhoraActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnActualizarAhoraActionPerformed
@@ -816,20 +816,20 @@ public class Principal extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_btnActualizarAhoraActionPerformed
 
-    private void addListenerRadio(final JRadioButton radio) {
-        final Pattern p = Pattern.compile("\\d+");
-        radio.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                Matcher m = p.matcher(radio.getText());
-                if (m.find()) {
-                    int tiempo = Integer.valueOf(m.group());
-                    threadXRP.setTiempo(tiempo);
-                }
-            }
-        }
-        );
-    }
+//    private void addListenerRadio(final JRadioButton radio) {
+//        final Pattern p = Pattern.compile("\\d+");
+//        radio.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                Matcher m = p.matcher(radio.getText());
+//                if (m.find()) {
+//                    int tiempo = Integer.valueOf(m.group());
+//                    threadXRP.setTiempo(tiempo);
+//                }
+//            }
+//        }
+//        );
+//    }
 
     private GraficaBarras obtenerGraficaBarras(JsonNode node) {
         if (node.get("success").asBoolean()) {
